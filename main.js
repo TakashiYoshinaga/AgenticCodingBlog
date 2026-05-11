@@ -71,9 +71,11 @@ const PLANETS = [
     radius: 1.24,
     distance: 15.4,
     color: 0xd5b48a,
+    bandColor: 0x8d6042,
     orbitDays: 4333,
     rotationSpeed: 3.4,
-    tilt: 0.05
+    tilt: 0.05,
+    hasBands: true
   },
   {
     name: "土星",
@@ -202,23 +204,15 @@ function createPlanet(data) {
   orbitPivot.add(planetPivot);
   systemRoot.add(orbitPivot);
 
-  const material = new THREE.MeshStandardMaterial({
-    color: data.color,
-    roughness: 0.82,
-    metalness: 0.02
-  });
+  const material = createPlanetMaterial(data);
   const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(data.radius, 36, 36),
+    new THREE.SphereGeometry(data.radius, data.hasBands ? 64 : 36, data.hasBands ? 48 : 36),
     material
   );
   planetPivot.add(mesh);
 
   if (data.name === "地球") {
     addEarthHint(mesh, data.radius);
-  }
-
-  if (data.name === "木星") {
-    addBands(mesh, data.radius);
   }
 
   if (data.hasRing) {
@@ -253,6 +247,75 @@ function createPlanet(data) {
     mesh,
     moonObject
   };
+}
+
+function createPlanetMaterial(data) {
+  const materialOptions = {
+    color: data.hasBands ? 0xffffff : data.color,
+    roughness: 0.82,
+    metalness: 0.02
+  };
+
+  if (data.hasBands) {
+    materialOptions.map = createBandTexture(data.color, data.bandColor);
+    materialOptions.roughness = 0.9;
+  }
+
+  return new THREE.MeshStandardMaterial(materialOptions);
+}
+
+function createBandTexture(baseColor, bandColor) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 256;
+
+  const context = canvas.getContext("2d");
+  const base = new THREE.Color(baseColor).getStyle();
+  const band = new THREE.Color(bandColor).getStyle();
+
+  context.fillStyle = base;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const bands = [
+    { y: 0.1, h: 0.06, color: "rgba(255, 246, 222, 0.42)" },
+    { y: 0.2, h: 0.085, color: band },
+    { y: 0.34, h: 0.045, color: "rgba(116, 75, 48, 0.72)" },
+    { y: 0.45, h: 0.075, color: "rgba(248, 230, 197, 0.34)" },
+    { y: 0.57, h: 0.095, color: band },
+    { y: 0.72, h: 0.052, color: "rgba(255, 248, 224, 0.36)" },
+    { y: 0.82, h: 0.075, color: "rgba(121, 77, 49, 0.62)" }
+  ];
+
+  bands.forEach(({ y, h, color }) => {
+    context.fillStyle = color;
+    context.fillRect(0, y * canvas.height, canvas.width, h * canvas.height);
+  });
+
+  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  const pixels = imageData.data;
+
+  for (let y = 0; y < canvas.height; y += 1) {
+    for (let x = 0; x < canvas.width; x += 1) {
+      const index = (y * canvas.width + x) * 4;
+      const wave =
+        Math.sin(y * 0.22 + x * 0.018) * 8 +
+        Math.sin(y * 0.07 - x * 0.035) * 5 +
+        Math.sin(x * 0.11) * 2;
+
+      pixels[index] = THREE.MathUtils.clamp(pixels[index] + wave, 0, 255);
+      pixels[index + 1] = THREE.MathUtils.clamp(pixels[index + 1] + wave * 0.72, 0, 255);
+      pixels[index + 2] = THREE.MathUtils.clamp(pixels[index + 2] + wave * 0.46, 0, 255);
+    }
+  }
+
+  context.putImageData(imageData, 0, 0);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+  return texture;
 }
 
 function createMoon(data, earthPivot) {
@@ -340,24 +403,6 @@ function addEarthHint(mesh, radius) {
     })
   );
   mesh.add(cloud);
-}
-
-function addBands(mesh, radius) {
-  const bandMaterial = new THREE.MeshBasicMaterial({
-    color: 0x8d6042,
-    transparent: true,
-    opacity: 0.34,
-    side: THREE.DoubleSide
-  });
-  [-0.34, 0.08, 0.38].forEach((y) => {
-    const band = new THREE.Mesh(
-      new THREE.RingGeometry(radius * 0.68, radius * 1.01, 72),
-      bandMaterial
-    );
-    band.rotation.x = Math.PI * 0.5;
-    band.position.y = y;
-    mesh.add(band);
-  });
 }
 
 function addLabel(text, object, yOffset) {
