@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Codex Solar System Demo</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main id="app" aria-label="Three.js solar system demo">
+      <section class="hud" aria-label="Controls">
+        <p class="eyebrow">Three.js Solar System</p>
+        <h1>Solar System Demo</h1>
+        <p>Drag to rotate / Wheel to zoom / WASD to move</p>
+        <p id="xr-status">WebXR: Checking...</p>
+      </section>
+
+      <button id="ar-button" type="button">View in AR</button>
+      <div id="labels" aria-hidden="true"></div>
+      <div id="canvas-host"></div>
+    </main>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
