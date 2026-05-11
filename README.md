@@ -1,17 +1,17 @@
-# 🌍 Interactive Three.js Solar System Demo
+# 🌍 Codex Solar System Demo
 
-**[View Live Demo](https://takashiyoshinaga.github.io/AgenticCodingBlog/)**
+## 🚀 [View Live Demo (Click Here!)](https://takashiyoshinaga.github.io/AgenticCodingBlog/)
 
-An interactive 3D solar system visualization built with Three.js, featuring all 8 planets with the Moon and WebXR support for immersive AR experiences.
+An interactive 3D solar system visualization built with Three.js. The demo shows the Sun, all 8 planets, Earth's Moon, orbit paths, labels, a star field, and optional WebXR AR viewing on supported devices.
 
 ## Features
 
-- Interactive camera controls (drag, zoom, WASD movement)
-- Realistic planetary orbits and rotations
+- Full-screen 3D solar system scene
+- OrbitControls camera rotation and zoom
+- WASD camera movement
+- Animated planetary orbits and rotations
 - Earth's Moon
-- Saturn's rings
-- WebXR (AR) support
-- 950-star background
+- WebXR immersive AR support with AR-specific lighting and scale controls
 
 ## How to Use
 
@@ -20,11 +20,15 @@ An interactive 3D solar system visualization built with Three.js, featuring all 
 | Drag | Rotate the view |
 | Scroll wheel | Zoom in / out |
 | `W` `A` `S` `D` | Move camera |
-| **ARで見る** button | Enter AR mode (WebXR-compatible devices only) |
+| **View in AR** button | Start AR mode on WebXR-compatible devices |
+| Right controller stick up/down in AR | Scale the solar system |
+
+The on-screen WebXR status message shows whether AR is available in the current browser and context.
 
 ## Tech Stack
 
 - [Three.js](https://threejs.org/) v0.164.1
+- OrbitControls
 - WebXR Device API
 - Vanilla JavaScript (ES Modules)
 
