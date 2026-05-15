@@ -4,6 +4,11 @@
 
 An interactive 3D solar system visualization built with Three.js. The demo shows the Sun, all 8 planets, Earth's Moon, orbit paths, labels, a star field, and optional WebXR AR viewing on supported devices.
 
+## Blog Posts
+
+- 日本語: [CodexでWeb3Dコンテンツを作る](https://qiita.com/Tks_Yoshinaga/items/e338160c5c8c55403267)
+- English: [Building Web3D Content with Codex](https://www.linkedin.com/pulse/building-web3d-content-codex-takashi-yoshinaga-mpdrc/)
+
 ## Features
 
 - Full-screen 3D solar system scene
