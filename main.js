@@ -16,10 +16,7 @@ const SUN_LIGHT_INTENSITY = 520;
 const GRAB_LAYER = 7;
 
 const DESKTOP_BACKGROUND = new THREE.Color(0x020610);
-const FACE_VIEWER_ROTATION = new THREE.Quaternion().setFromAxisAngle(
-  new THREE.Vector3(1, 0, 0),
-  Math.PI / 2,
-);
+const WORLD_UP = new THREE.Vector3(0, 1, 0);
 
 const PLANETS = Object.freeze([
   {
@@ -1091,11 +1088,15 @@ function placeSolarSystemFromViewer(frame) {
   const { position, orientation } = pose.transform;
   viewerPosition.set(position.x, position.y, position.z);
   viewerQuaternion.set(orientation.x, orientation.y, orientation.z, orientation.w);
-  viewerForward.set(0, 0, -1).applyQuaternion(viewerQuaternion).normalize();
+  viewerForward.set(0, 0, -1).applyQuaternion(viewerQuaternion);
+  viewerForward.y = 0;
+  if (viewerForward.lengthSq() < 1e-6) viewerForward.set(0, 0, -1);
+  viewerForward.normalize();
 
   placementRoot.position.copy(viewerPosition).addScaledVector(viewerForward, 1);
   placementRoot.quaternion.identity();
-  interactionRoot.quaternion.copy(viewerQuaternion).multiply(FACE_VIEWER_ROTATION);
+  const yaw = Math.atan2(-viewerForward.x, -viewerForward.z);
+  interactionRoot.quaternion.setFromAxisAngle(WORLD_UP, yaw);
   interactionRoot.scale.setScalar(currentArScale);
   placementRoot.visible = true;
   placementPending = false;
