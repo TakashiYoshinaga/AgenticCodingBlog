@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>太陽系デモ — Three.js / WebXR</title>
+<link rel="stylesheet" href="css/style.css">
+
+<!--
+  ビルドツールを使わずに ES モジュールの "three" を解決するための importmap。
+  npm も bundler も不要で、ローカルサーバーに置くだけで動く。
+-->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.185.1/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<!-- 通常表示のオーバーレイ UI ------------------------------------------------>
+<div id="ui">
+
+  <div class="panel panel-top-left">
+    <h1><span data-i18n="app.title">太陽系デモ</span><span class="tag">Three.js / WebXR</span></h1>
+    <button id="btn-help" class="link-button" aria-expanded="false" data-i18n="help.open">操作説明を開く ▾</button>
+    <div id="help">
+      <table>
+        <tbody>
+          <tr><th data-i18n="ctrl.drag">マウスドラッグ</th><td data-i18n="ctrl.drag.desc">視点を回転</td></tr>
+          <tr><th data-i18n="ctrl.zoom">ホイール / ピンチ</th><td data-i18n="ctrl.zoom.desc">ズーム</td></tr>
+          <tr><th data-i18n="ctrl.move">W A S D</th><td data-i18n="ctrl.move.desc">カメラ移動</td></tr>
+          <tr><th data-i18n="ctrl.updown">Q / E</th><td data-i18n="ctrl.updown.desc">下降 / 上昇</td></tr>
+          <tr><th data-i18n="ctrl.boost">Shift</th><td data-i18n="ctrl.boost.desc">移動を加速</td></tr>
+          <tr><th data-i18n="ctrl.pause">Space</th><td data-i18n="ctrl.pause.desc">一時停止</td></tr>
+          <tr><th data-i18n="ctrl.toggle">L / O</th><td data-i18n="ctrl.toggle.desc">ラベル / 軌道線</td></tr>
+          <tr><th data-i18n="ctrl.speed">+ / −</th><td data-i18n="ctrl.speed.desc">再生速度</td></tr>
+          <tr><th data-i18n="ctrl.reset">R</th><td data-i18n="ctrl.reset.desc">視点をリセット</td></tr>
+        </tbody>
+      </table>
+      <p class="note">
+        <span data-i18n="note.line1">Meta Quest では「ARで見る」を押すと実空間に太陽系が出ます。</span><br>
+        <span data-i18n="note.line2">右スティック上下＝拡大縮小、左スティック左右＝回転、</span><br>
+        <span data-i18n="note.line3">トリガーを押している間＝掴んで移動。</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="panel panel-top-right">
+    <button id="btn-ar" class="primary" data-i18n="btn.ar">ARで見る</button>
+    <button id="btn-vr" data-i18n="btn.vr">VRで見る</button>
+  </div>
+
+  <div class="panel panel-bottom">
+    <button id="btn-pause">一時停止</button>
+    <label class="field">
+      <span data-i18n="label.speed">速度</span>
+      <select id="sel-speed">
+        <option value="0.25">0.25x</option>
+        <option value="1">1x</option>
+        <option value="5">5x</option>
+        <option value="25">25x</option>
+        <option value="100">100x</option>
+      </select>
+    </label>
+    <button id="btn-labels" data-i18n="btn.labels">ラベル</button>
+    <button id="btn-orbits" data-i18n="btn.orbits">軌道線</button>
+    <button id="btn-lang" class="lang" data-i18n="btn.lang">EN</button>
+    <span id="fps" class="fps">— fps</span>
+  </div>
+
+  <p id="status" class="status"></p>
+</div>
+
+<!-- AR / VR 中に HMD 内へ出すヒント（WebXR の dom-overlay で表示される） ----->
+<div id="ar-hint" class="hidden">
+  <div class="ar-hint-inner">
+    <span class="ar-row"><b data-i18n="ar.scaleKey">右スティック↑↓</b> <span data-i18n="ar.scale">拡大 / 縮小</span><span id="ar-scale">2.0 %</span></span>
+    <span class="ar-row"><b data-i18n="ar.rotateKey">左スティック←→</b> <span data-i18n="ar.rotate">回転</span>　<b data-i18n="ar.pushKey">↑↓</b> <span data-i18n="ar.push">前後</span></span>
+    <span class="ar-row"><b data-i18n="ar.grabKey">トリガー長押し</b> <span data-i18n="ar.grab">掴んで移動</span></span>
+    <button id="btn-ar-exit" data-i18n="ar.exit">終了</button>
+  </div>
+</div>
+
+<!-- モジュールの読み込みに失敗した場合の案内（読み込めれば JS が消す） -------->
+<noscript>
+  <p class="fallback">このデモの表示には JavaScript が必要です。 / This demo requires JavaScript.</p>
+</noscript>
+
+<script type="module" src="js/main.js"></script>
+<script>
+  // importmap や CDN の取得に失敗しても真っ黒な画面で放置しないための保険。
+  window.addEventListener('error', (event) => {
+    const status = document.getElementById('status');
+    if (status && !document.body.classList.contains('ready')) {
+      // i18n モジュール自体が読めていない可能性があるので、ここだけは両言語を直書きする
+      var ja = '読み込みに失敗しました: ' + (event.message || '') +
+        ' / three.js を CDN から取得できているか、ローカルサーバー経由で開いているかご確認ください。';
+      var en = 'Failed to load: ' + (event.message || '') +
+        ' / Check that three.js can be fetched from the CDN and that you opened the page through a local server.';
+      status.className = 'status warn';
+      status.textContent = (navigator.language || 'ja').toLowerCase().indexOf('ja') === 0 ? ja : en;
+    }
+  });
+</script>
+
+</body>
+</html>

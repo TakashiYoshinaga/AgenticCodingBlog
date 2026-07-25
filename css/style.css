@@ -1,0 +1,359 @@
+/* ==========================================================================
+   太陽系デモ — オーバーレイ UI のスタイル
+   3D は全部 canvas 側。ここは説明パネルとボタンだけを担当する。
+   ========================================================================== */
+
+:root {
+  --bg: #05060d;
+  --panel-bg: rgba(12, 18, 32, 0.72);
+  --panel-border: rgba(140, 180, 255, 0.22);
+  --text: #e8eefc;
+  --text-dim: #9fb0cd;
+  --accent: #6fb4ff;
+  --accent-strong: #2f7fe0;
+  --warn: #ffcf6b;
+  --ok: #7ee0a8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none; /* ピンチズームをブラウザに奪われないようにする */
+}
+
+/* --- オーバーレイの土台 --------------------------------------------------- */
+
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none; /* 3D のドラッグ操作を邪魔しない */
+  z-index: 10;
+}
+
+#ui.xr-active {
+  display: none; /* 没入セッション中は隠す */
+}
+
+.panel {
+  position: absolute;
+  pointer-events: auto;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+.panel-top-left {
+  top: 14px;
+  left: 14px;
+  max-width: min(340px, calc(100vw - 28px));
+}
+
+.panel-top-right {
+  top: 14px;
+  right: 14px;
+  display: flex;
+  gap: 8px;
+}
+
+.panel-bottom {
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: calc(100vw - 28px);
+}
+
+/* --- 見出し --------------------------------------------------------------- */
+
+h1 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.tag {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* --- ボタン類 ------------------------------------------------------------- */
+
+button,
+select {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+button:hover:not(:disabled),
+select:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button.active {
+  background: rgba(111, 180, 255, 0.22);
+  border-color: rgba(111, 180, 255, 0.55);
+  color: #dcecff;
+}
+
+button.primary {
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #04101f;
+  font-weight: 700;
+}
+
+button.primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-button:hover {
+  background: none;
+  color: #a8d3ff;
+}
+
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  pointer-events: auto;
+}
+
+/* 言語切り替え。押すと「切り替わる先」を表示する（日本語表示中は EN） */
+button.lang {
+  min-width: 54px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-color: rgba(111, 180, 255, 0.4);
+  color: var(--accent);
+}
+
+button.lang:hover:not(:disabled) {
+  background: rgba(111, 180, 255, 0.2);
+}
+
+.fps {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  min-width: 52px;
+  text-align: right;
+}
+
+/* --- 操作説明 ------------------------------------------------------------- */
+
+#help {
+  display: none;
+  margin-top: 10px;
+}
+
+#help.open {
+  display: block;
+}
+
+#help table {
+  border-collapse: collapse;
+  font-size: 12px;
+  width: 100%;
+}
+
+#help th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 3px 12px 3px 0;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+#help td {
+  color: var(--text-dim);
+  padding: 3px 0;
+}
+
+.note {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 8px;
+}
+
+/* --- ステータス（WebXR 非対応時の案内文など） ----------------------------- */
+
+.status {
+  position: absolute;
+  left: 50%;
+  bottom: 72px;
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: min(620px, calc(100vw - 28px));
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.status:not(:empty) {
+  pointer-events: auto;
+  padding: 8px 14px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.status.warn {
+  color: var(--warn);
+  border-color: rgba(255, 207, 107, 0.35);
+}
+
+.status.ok {
+  color: var(--ok);
+  border-color: rgba(126, 224, 168, 0.3);
+}
+
+/* --- AR / VR 中の dom-overlay --------------------------------------------- */
+
+#ar-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 20;
+}
+
+#ar-hint.hidden {
+  display: none;
+}
+
+.ar-hint-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 12px 18px;
+  background: rgba(6, 12, 24, 0.78);
+  border: 1px solid rgba(140, 180, 255, 0.3);
+  border-radius: 14px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.ar-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.ar-row b {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+#ar-scale {
+  color: var(--warn);
+  font-variant-numeric: tabular-nums;
+  min-width: 62px;
+}
+
+#btn-ar-exit {
+  font-size: 15px;
+  padding: 8px 18px;
+}
+
+/* --- その他 --------------------------------------------------------------- */
+
+.fallback {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  font-size: 14px;
+}
+
+/* 画面が狭いときは情報量を落とす */
+@media (max-width: 620px) {
+  .panel-top-left {
+    max-width: calc(100vw - 28px);
+  }
+  .panel-bottom {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+  button,
+  select {
+    font-size: 12px;
+    padding: 6px 9px;
+  }
+  .fps {
+    display: none;
+  }
+  .status {
+    bottom: 96px;
+  }
+}
