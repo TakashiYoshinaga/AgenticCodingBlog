@@ -15,7 +15,14 @@
  */
 
 import * as THREE from 'three';
-import { t, onLanguageChange } from './i18n.js';
+import { t, hasTranslation, onLanguageChange } from './i18n.js';
+
+/**
+ * 狭い画面では案内文を短縮版に切り替える。
+ * 横向きスマホ（幅は広いが高さがない）も含めるため、高さの条件も入れてある。
+ * CSS 側のブレークポイントと必ず揃えること。
+ */
+const NARROW_SCREEN = window.matchMedia('(max-width: 620px), (max-height: 480px)');
 
 /** AR の初期スケール。通常表示（1.0）よりずっと小さい卓上サイズ。 */
 const AR_BASE_SCALE = 0.02;
@@ -70,6 +77,7 @@ export function initXR({
     statusKey: '',
     statusKind: 'info',
     statusExtra: '',
+    statusDismissed: false,
   };
 
   /** 通常表示に戻すための退避領域。 */
@@ -331,15 +339,32 @@ export function initXR({
     state.statusKey = key;
     state.statusKind = kind;
     state.statusExtra = extra;
+    state.statusDismissed = false; // 新しい知らせは閉じた状態を解除して見せる
     renderStatus();
   }
 
   function renderStatus() {
-    if (!ui.status) return;
+    if (!ui.status || !ui.statusText) return;
+
     const key = state.statusKey;
-    const message = key ? t(key) + (state.statusExtra ? `（${state.statusExtra}）` : '') : '';
-    ui.status.textContent = message;
-    ui.status.className = message ? `status ${state.statusKind}` : 'status';
+    let message = '';
+    if (key) {
+      // 狭い画面では短縮版を使う（無ければ通常版）
+      const shortKey = `${key}.short`;
+      const useShort = NARROW_SCREEN.matches && hasTranslation(shortKey);
+      message = t(useShort ? shortKey : key);
+      // 例外メッセージは長いので、短縮表示のときは付けない
+      if (state.statusExtra && !useShort) message += `（${state.statusExtra}）`;
+    }
+
+    ui.statusText.textContent = message;
+    const visible = Boolean(message) && !state.statusDismissed;
+    ui.status.className = `status ${state.statusKind}${visible ? ' has-text' : ''}`;
+  }
+
+  function dismissStatus() {
+    state.statusDismissed = true;
+    renderStatus();
   }
 
   function updateArHintScale() {
@@ -353,11 +378,21 @@ export function initXR({
   function disableButton(button, key) {
     if (!button) return;
     button.disabled = true;
+    // 狭い画面では押せないボタンを隠すための目印（CSS 側で使う）
+    button.classList.add('xr-unsupported');
     if (key) {
       // data-i18n を差し替えれば applyToDom() が勝手に面倒を見てくれる
       button.dataset.i18n = key;
       button.textContent = t(key);
     }
+  }
+
+  /** AR / VR ともに使えないなら、空の枠が残らないようパネルごと隠せるようにする。 */
+  function markXrPanel() {
+    const panel = ui.arButton?.parentElement;
+    if (!panel) return;
+    const anyUsable = [ui.arButton, ui.vrButton].some((b) => b && !b.disabled);
+    panel.classList.toggle('xr-none', !anyUsable);
   }
 
   /**
@@ -368,6 +403,7 @@ export function initXR({
       disableButton(ui.arButton, 'btn.arUnsupported');
       disableButton(ui.vrButton, 'btn.vrUnsupported');
       setStatus('status.noWebXR', 'warn');
+      markXrPanel();
       return;
     }
 
@@ -375,6 +411,7 @@ export function initXR({
       disableButton(ui.arButton, 'btn.arUnavailable');
       disableButton(ui.vrButton, 'btn.vrUnavailable');
       setStatus('status.insecure', 'warn');
+      markXrPanel();
       return;
     }
 
@@ -401,6 +438,8 @@ export function initXR({
     } else {
       setStatus('status.noImmersive', 'warn');
     }
+
+    markXrPanel();
   }
 
   ui.arButton?.addEventListener('click', () => startSession('ar'));
@@ -411,8 +450,12 @@ export function initXR({
   // 発火してしまうのを防ぐ。
   ui.arHint?.addEventListener('beforexrselect', (event) => event.preventDefault());
 
+  ui.statusClose?.addEventListener('click', dismissStatus);
+
   // 言語が変わったら、表示中の案内文も訳し直す
   onLanguageChange(renderStatus);
+  // 端末を回して画面幅が変わったら、通常版 / 短縮版を切り替え直す
+  NARROW_SCREEN.addEventListener('change', renderStatus);
 
   detectSupport();
 

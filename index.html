@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>太陽系デモ — Three.js / WebXR</title>
 <link rel="stylesheet" href="css/style.css">
 
@@ -25,6 +25,13 @@
 
 <!-- 通常表示のオーバーレイ UI ------------------------------------------------>
 <div id="ui">
+
+  <!--
+    タイトルと AR/VR ボタンは 1 つの flex 行に入れる。
+    別々の position:absolute にすると互いの幅を知らないため、
+    狭い画面で左パネルが右パネルの下に潜り込んで重なる。
+  -->
+  <div class="top-bar">
 
   <div class="panel panel-top-left">
     <h1><span data-i18n="app.title">太陽系デモ</span><span class="tag">Three.js / WebXR</span></h1>
@@ -56,6 +63,21 @@
     <button id="btn-vr" data-i18n="btn.vr">VRで見る</button>
   </div>
 
+  </div><!-- /.top-bar -->
+
+  <!--
+    案内文と操作バーを縦に積む。別々の position:absolute にすると、
+    バーが伸びたときに案内文と重なる。
+  -->
+  <div class="bottom-stack">
+
+  <!-- 閉じるボタンを消さずに済むよう、本文は span に分けておく -->
+  <p id="status" class="status">
+    <span id="status-text"></span>
+    <button id="btn-status-close" class="status-close"
+            data-i18n-attr="aria-label:status.close" aria-label="閉じる">&times;</button>
+  </p>
+
   <div class="panel panel-bottom">
     <button id="btn-pause">一時停止</button>
     <label class="field">
@@ -74,7 +96,7 @@
     <span id="fps" class="fps">— fps</span>
   </div>
 
-  <p id="status" class="status"></p>
+  </div><!-- /.bottom-stack -->
 </div>
 
 <!-- AR / VR 中に HMD 内へ出すヒント（WebXR の dom-overlay で表示される） ----->
@@ -97,14 +119,15 @@
   // importmap や CDN の取得に失敗しても真っ黒な画面で放置しないための保険。
   window.addEventListener('error', (event) => {
     const status = document.getElementById('status');
-    if (status && !document.body.classList.contains('ready')) {
+    const statusText = document.getElementById('status-text');
+    if (status && statusText && !document.body.classList.contains('ready')) {
       // i18n モジュール自体が読めていない可能性があるので、ここだけは両言語を直書きする
       var ja = '読み込みに失敗しました: ' + (event.message || '') +
         ' / three.js を CDN から取得できているか、ローカルサーバー経由で開いているかご確認ください。';
       var en = 'Failed to load: ' + (event.message || '') +
         ' / Check that three.js can be fetched from the CDN and that you opened the page through a local server.';
       status.className = 'status warn';
-      status.textContent = (navigator.language || 'ja').toLowerCase().indexOf('ja') === 0 ? ja : en;
+      statusText.textContent = (navigator.language || 'ja').toLowerCase().indexOf('ja') === 0 ? ja : en;
     }
   });
 </script>

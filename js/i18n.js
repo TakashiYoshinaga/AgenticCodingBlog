@@ -80,6 +80,16 @@ const DICT = {
       'この環境では没入モード（AR / VR）を開始できません。通常表示でお楽しみください。',
     'status.sessionFailed': 'セッションを開始できませんでした。通常表示のままご利用いただけます。',
 
+    // 狭い画面用の短縮版。renderStatus() が幅を見て使い分ける。
+    'status.noWebXR.short': 'WebXR 非対応のため通常表示です',
+    'status.insecure.short': 'AR には HTTPS 接続が必要です',
+    'status.arReady.short': 'AR で見られます',
+    'status.vrOnly.short': 'VR のみ利用できます',
+    'status.noImmersive.short': 'AR / VR 非対応のため通常表示です',
+    'status.sessionFailed.short': 'セッションを開始できませんでした',
+
+    'status.close': '閉じる',
+
     'error.load':
       '読み込みに失敗しました。three.js を CDN から取得できているか、ローカルサーバー経由で開いているかご確認ください。',
     'noscript': 'このデモの表示には JavaScript が必要です。',
@@ -149,6 +159,16 @@ const DICT = {
       'Immersive mode (AR / VR) is not available in this environment. Enjoy the normal view.',
     'status.sessionFailed': 'Could not start the session. You can keep using the normal view.',
 
+    // Short forms for narrow screens; renderStatus() picks by viewport width.
+    'status.noWebXR.short': 'WebXR unsupported — normal view',
+    'status.insecure.short': 'AR needs an HTTPS connection',
+    'status.arReady.short': 'AR is available',
+    'status.vrOnly.short': 'VR only',
+    'status.noImmersive.short': 'AR / VR unsupported — normal view',
+    'status.sessionFailed.short': 'Could not start the session',
+
+    'status.close': 'Close',
+
     'error.load':
       'Failed to load. Check that three.js can be fetched from the CDN and that you opened the page through a local server.',
     'noscript': 'This demo requires JavaScript.',
@@ -177,6 +197,11 @@ export function getLanguage() {
 /** キーから訳文を引く。未定義のキーはキー名をそのまま返して気付けるようにする。 */
 export function t(key) {
   return DICT[current]?.[key] ?? DICT.ja[key] ?? key;
+}
+
+/** そのキーの訳が存在するか。短縮版があるかどうかの判定に使う。 */
+export function hasTranslation(key) {
+  return Boolean(DICT[current]?.[key] ?? DICT.ja[key]);
 }
 
 /** 天体データ（name / nameJa を持つ）から現在の言語での表示名を得る。 */

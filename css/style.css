@@ -53,8 +53,8 @@ body {
   display: none; /* 没入セッション中は隠す */
 }
 
+/* .panel は「見た目」だけを担当する。配置は各バリアント側で決める。 */
 .panel {
-  position: absolute;
   pointer-events: auto;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
@@ -65,29 +65,59 @@ body {
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
 }
 
+/*
+ * タイトルと AR/VR ボタンを 1 つの flex 行にまとめる。
+ * それぞれを独立した position:absolute にすると互いの幅を知らないため、
+ * 狭い画面で左が右の下に潜り込んで重なってしまう。
+ */
+.top-bar {
+  position: absolute;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  left: calc(14px + env(safe-area-inset-left, 0px));
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+}
+
 .panel-top-left {
-  top: 14px;
-  left: 14px;
-  max-width: min(340px, calc(100vw - 28px));
+  min-width: 0; /* 狭いときに縮めるために必要 */
+  max-width: 340px;
 }
 
 .panel-top-right {
-  top: 14px;
-  right: 14px;
   display: flex;
   gap: 8px;
+  flex: 0 0 auto; /* ボタンは縮めない */
+}
+
+/*
+ * 案内文と操作バーを縦に積む。
+ * left:50% + translateX で中央寄せすると、絶対配置の shrink-to-fit 幅が
+ * 「画面の半分」までしか広がらず、ボタンが無駄に何段も折り返してしまう。
+ * left/right を両方指定して幅を確保し、中身を flex で中央寄せする。
+ */
+.bottom-stack {
+  position: absolute;
+  left: calc(14px + env(safe-area-inset-left, 0px));
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
 }
 
 .panel-bottom {
-  left: 50%;
-  bottom: 14px;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   justify-content: center;
-  max-width: calc(100vw - 28px);
+  max-width: 100%;
 }
 
 /* --- 見出し --------------------------------------------------------------- */
@@ -241,27 +271,56 @@ button.lang:hover:not(:disabled) {
 /* --- ステータス（WebXR 非対応時の案内文など） ----------------------------- */
 
 .status {
-  position: absolute;
-  left: 50%;
-  bottom: 72px;
-  transform: translateX(-50%);
   margin: 0;
-  max-width: min(620px, calc(100vw - 28px));
+  max-width: min(620px, 100%);
   padding: 0;
   font-size: 12px;
   line-height: 1.6;
   text-align: center;
   color: var(--text-dim);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
-.status:not(:empty) {
+/* 本文が空のときは枠ごと消す（閉じるボタンだけが浮かないように） */
+.status:not(.has-text),
+.status[hidden] {
+  display: none;
+}
+
+.status.has-text {
   pointer-events: auto;
-  padding: 8px 14px;
+  padding: 8px 10px 8px 14px;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: 10px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+#status-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.status-close {
+  flex: 0 0 auto;
+  padding: 0;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  font-size: 16px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  opacity: 0.65;
+}
+
+.status-close:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  opacity: 1;
 }
 
 .status.warn {
@@ -336,24 +395,108 @@ button.lang:hover:not(:disabled) {
   font-size: 14px;
 }
 
-/* 画面が狭いときは情報量を落とす */
+/* --- 狭い画面（スマホ） ----------------------------------------------------- */
 @media (max-width: 620px) {
-  .panel-top-left {
-    max-width: calc(100vw - 28px);
+  .top-bar {
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    gap: 8px;
   }
+
+  .panel {
+    padding: 9px 11px;
+    border-radius: 10px;
+  }
+
+  h1 {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  /* 「THREE.JS / WEBXR」は狭いところで場所を食うだけなので落とす */
+  .tag {
+    display: none;
+  }
+
+  /* 押せない XR ボタンが一等地を占めないようにする */
+  .xr-unsupported {
+    display: none;
+  }
+  .panel-top-right.xr-none {
+    display: none;
+  }
+
+  .bottom-stack {
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    gap: 6px;
+  }
+
   .panel-bottom {
     gap: 6px;
     padding: 8px 10px;
   }
+
   button,
   select {
     font-size: 12px;
-    padding: 6px 9px;
+    padding: 8px 10px;
+    min-height: 36px; /* 指で押せる大きさを確保する */
   }
+
+  .link-button {
+    min-height: 0;
+    padding: 2px 0;
+  }
+
+  .status-close {
+    min-height: 0;
+    width: 26px;
+    height: 26px;
+  }
+
   .fps {
     display: none;
   }
+
   .status {
-    bottom: 96px;
+    font-size: 11px;
+    line-height: 1.5;
+    text-align: left;
+  }
+}
+
+/* --- 高さが足りない画面（横向きスマホなど） --------------------------------- */
+@media (max-height: 480px) {
+  .panel {
+    padding: 7px 10px;
+  }
+  .bottom-stack {
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    gap: 6px;
+  }
+  .panel-bottom {
+    padding: 6px 8px;
+  }
+  .status {
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  #help .note {
+    display: none; /* Quest 用の注記まで出すと縦に収まらない */
+  }
+  /* 横向きスマホも「狭い画面」扱い。押せない XR ボタンに場所を割かない */
+  .xr-unsupported {
+    display: none;
+  }
+  .panel-top-right.xr-none {
+    display: none;
+  }
+  button,
+  select {
+    min-height: 32px;
+    padding: 6px 9px;
   }
 }

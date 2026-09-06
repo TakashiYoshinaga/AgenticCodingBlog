@@ -54,13 +54,38 @@ renderer.xr.setFramebufferScaleFactor(1.0);
 /* シーンとカメラ                                                              */
 /* ========================================================================== */
 
+/* --- 画面の縦横比に応じた画角と初期距離 --------------------------------------
+ * 縦画面のスマホでは水平の画角が極端に狭くなる（垂直 60° / アスペクト 0.47 で
+ * 水平は 30° しかない）ため、太陽系が左右にはみ出す。垂直画角を広げて補うが、
+ * 広げすぎると周辺が歪むので上限を設け、足りない分は少し引いて稼ぐ。
+ * -------------------------------------------------------------------------- */
+const BASE_FOV = 60;
+const BASE_ASPECT = 1.6; // これより横長なら従来どおり
+const MAX_FOV = 72;
+const HOME_DISTANCE = 98;
+const MAX_DISTANCE_FACTOR = 1.35;
+
+function fovForAspect(aspect) {
+  if (aspect >= BASE_ASPECT) return BASE_FOV;
+  const baseHalf = Math.tan(THREE.MathUtils.degToRad(BASE_FOV) / 2);
+  const wanted = THREE.MathUtils.radToDeg(2 * Math.atan((baseHalf * BASE_ASPECT) / aspect));
+  return Math.min(MAX_FOV, wanted);
+}
+
+function homeDistanceForAspect(aspect) {
+  return HOME_DISTANCE * THREE.MathUtils.clamp(BASE_ASPECT / aspect, 1, MAX_DISTANCE_FACTOR);
+}
+
+const initialAspect = window.innerWidth / window.innerHeight;
+
 const camera = new THREE.PerspectiveCamera(
-  60,
-  window.innerWidth / window.innerHeight,
+  fovForAspect(initialAspect),
+  initialAspect,
   0.05, // AR で 1m 先の小さな天体を見るので near は小さく
   3000 // 星背景（半径 900）が入る far
 );
-camera.position.set(0, 34, 92); // 海王星の軌道（半径 51）まで画面に収まる位置
+// 初期位置は (0, 34, 92) の向きを保ったまま、縦画面では距離だけ伸ばす
+camera.position.set(0, 34, 92).normalize().multiplyScalar(homeDistanceForAspect(initialAspect));
 
 // 起動コストの実測値。__solar.buildMs で確認できる（CanvasTexture 生成が支配的）
 const buildStart = performance.now();
@@ -75,6 +100,8 @@ const { scene, root, starField, bodies, orbitLines, labels } = world;
 const ui = {
   overlay: document.getElementById('ui'),
   status: document.getElementById('status'),
+  statusText: document.getElementById('status-text'),
+  statusClose: document.getElementById('btn-status-close'),
   arButton: document.getElementById('btn-ar'),
   vrButton: document.getElementById('btn-vr'),
   arHint: document.getElementById('ar-hint'),
@@ -200,8 +227,9 @@ ui.helpToggle.addEventListener('click', () => {
 });
 
 // 操作方法は最初から見えている状態にする（畳みたい人だけ畳める）。
-// ただし画面が縦に短いと下部のパネルや案内文と重なるので、その場合は畳んでおく。
-setHelpOpen(window.innerHeight >= 700);
+// スマホだと下部のパネルや案内文と重なって邪魔なので、そこでは畳んでおく。
+// 縦長スマホは高さ条件だけだと通過してしまうため、幅も見る。
+setHelpOpen(window.innerWidth >= 700 && window.innerHeight >= 700);
 
 /* ========================================================================== */
 /* 言語切り替え                                                                */
@@ -229,7 +257,10 @@ setSpeed(1);
 window.addEventListener('resize', () => {
   // XR 中は WebXR 側が描画サイズを管理するので触らない
   if (renderer.xr.isPresenting) return;
-  camera.aspect = window.innerWidth / window.innerHeight;
+  const aspect = window.innerWidth / window.innerHeight;
+  camera.aspect = aspect;
+  // 画角だけ追従させる。カメラ位置は動かさない（操作中に視点が飛ぶのを防ぐ）
+  camera.fov = fovForAspect(aspect);
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
